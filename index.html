@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CX100 Polling — Executive Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root{
+    --red:#e60000;--red-d:#a30000;--red-l:#ff5252;
+    --orange:#ff7a00;--blue:#2563eb;--green:#10b981;
+    --ink:#101524;--muted:#6b7280;--bg:#eef0f4;--card:#fff;--line:#e7e9ee;
+    --good:#10b981;--warn:#f59e0b;--bad:#ef4444;
+    --shadow:0 4px 20px rgba(20,25,45,.07);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;font-family:'Poppins',sans-serif}
+  body{background:var(--bg);color:var(--ink);line-height:1.55;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1280px;margin:0 auto;padding:22px 20px 70px}
+  /* ===== HEADER ===== */
+  header{background:linear-gradient(120deg,#c20000 0%,#e60000 45%,#7a0000 100%);color:#fff;border-radius:20px;
+    padding:24px 32px;box-shadow:0 12px 34px rgba(230,0,0,.28);display:flex;justify-content:space-between;
+    align-items:center;flex-wrap:wrap;gap:18px;position:relative;overflow:hidden}
+  header::before{content:'';position:absolute;right:-40px;top:-60px;width:240px;height:240px;
+    background:radial-gradient(circle,rgba(255,255,255,.13),transparent 70%);border-radius:50%}
+  .brand{display:flex;align-items:center;gap:16px;z-index:1}
+  .logo{display:flex;align-items:center;gap:10px;background:#fff;padding:9px 16px 9px 12px;border-radius:30px;box-shadow:0 4px 14px rgba(0,0,0,.18)}
+  .logo svg{display:block}
+  .logo .name{font-weight:700;font-size:18px;color:var(--red);letter-spacing:-.3px}
+  .brand h1{font-size:23px;font-weight:700;letter-spacing:-.2px;line-height:1.2}
+  .brand .sub{opacity:.92;font-size:13px;font-weight:300;margin-top:2px}
+  .deadline-badge{z-index:1;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.3);
+    backdrop-filter:blur(6px);padding:12px 20px;border-radius:14px;text-align:center}
+  .deadline-badge .d-lbl{font-size:11px;font-weight:300;opacity:.9;text-transform:uppercase;letter-spacing:1px}
+  .deadline-badge .d-val{font-size:22px;font-weight:700;margin-top:2px}
+  .deadline-badge .d-sub{font-size:12px;font-weight:500;opacity:.95}
+  /* ===== SECTION TITLE ===== */
+  .sec{font-size:12px;font-weight:700;letter-spacing:1.4px;color:var(--muted);text-transform:uppercase;
+    margin:32px 4px 15px;display:flex;align-items:center;gap:9px}
+  .sec::before{content:'';width:5px;height:17px;background:var(--red);border-radius:3px}
+  .sec span.tag{margin-left:auto;font-size:10px;font-weight:600;letter-spacing:.5px;color:#9ca3af;text-transform:none}
+  /* ===== KPI ===== */
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(195px,1fr));gap:15px}
+  .kpi{background:var(--card);border-radius:16px;padding:18px 20px;box-shadow:var(--shadow);
+    border:1px solid var(--line);position:relative;overflow:hidden}
+  .kpi::after{content:'';position:absolute;top:0;left:0;width:100%;height:4px;background:var(--red)}
+  .kpi.b1::after{background:var(--red)}.kpi.b2::after{background:var(--blue)}
+  .kpi.b3::after{background:var(--green)}.kpi.b4::after{background:var(--orange)}
+  .kpi.b5::after{background:#7c3aed}.kpi.b6::after{background:var(--bad)}
+  .kpi .lbl{font-size:11.5px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+  .kpi .val{font-size:28px;font-weight:800;margin-top:6px;letter-spacing:-.5px}
+  .kpi .meta{font-size:12px;color:var(--muted);margin-top:3px;font-weight:400}
+  .pill{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;margin-top:7px}
+  .pill.up{background:#dcfce7;color:#15803d}.pill.down{background:#fee2e2;color:#b91c1c}.pill.neu{background:#fef3c7;color:#b45309}
+  /* left-accent KPI (gaya klasik) */
+  .kpi.lacc::after{top:0;left:0;width:5px;height:100%}
+  .kpi.lacc.l1::after{background:var(--red)}.kpi.lacc.l2::after{background:var(--red)}
+  .kpi.lacc.l3::after{background:var(--green)}.kpi.lacc.l4::after{background:var(--green)}
+  .kpi.lacc.l5::after{background:var(--orange)}
+  .row-label{font-size:11px;font-weight:600;letter-spacing:.5px;color:#9ca3af;text-transform:uppercase;margin:4px 4px 9px}
+  /* ===== CARDS ===== */
+  .card{background:var(--card);border-radius:18px;padding:20px 22px;box-shadow:var(--shadow);border:1px solid var(--line)}
+  .card h3{font-size:15px;font-weight:600;margin-bottom:3px}
+  .card .hint{font-size:12px;color:var(--muted);margin-bottom:15px;font-weight:300}
+  .grid2{display:grid;grid-template-columns:1.5fr 1fr;gap:16px}
+  .grid2b{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+  @media(max-width:900px){.grid2,.grid2b,.grid3{grid-template-columns:1fr}}
+  .cbox{position:relative;height:300px}.cbox.tall{height:360px}.cbox.sm{height:250px}
+  /* ===== TARGET ATTAINMENT ===== */
+  .attain{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:16px;align-items:stretch}
+  @media(max-width:900px){.attain{grid-template-columns:1fr}}
+  .bar-outer{background:#eef0f4;height:30px;border-radius:16px;overflow:hidden;margin-top:8px;position:relative}
+  .bar-inner{height:100%;background:linear-gradient(90deg,var(--red),var(--red-l));display:flex;align-items:center;
+    padding-left:12px;color:#fff;font-weight:600;font-size:12px;white-space:nowrap;border-radius:16px}
+  .mini{font-size:12px;color:var(--muted);display:flex;justify-content:space-between;margin-top:6px}
+  .stat-big{font-size:30px;font-weight:800;letter-spacing:-.5px}
+  .stat-sub{font-size:12px;color:var(--muted)}
+  /* ===== MAPPING ===== */
+  .map-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+  .mapc{border-radius:14px;padding:16px 18px;color:#fff;position:relative;overflow:hidden;box-shadow:var(--shadow)}
+  .mapc h4{font-size:14.5px;font-weight:700;display:flex;align-items:center;gap:8px}
+  .mapc .share{font-size:26px;font-weight:800;margin:4px 0 2px}
+  .mapc ul{list-style:none;margin-top:8px;font-size:12px;opacity:.95;font-weight:300}
+  .mapc li{padding:2px 0;display:flex;align-items:center;gap:6px}
+  .mapc li::before{content:'•';font-weight:700}
+  /* ===== HEATMAP ===== */
+  table.heat{border-collapse:collapse;width:100%;font-size:11px}
+  table.heat th{font-weight:500;color:var(--muted);padding:5px 5px;text-align:center}
+  table.heat td.tname{text-align:left;font-weight:500;white-space:nowrap;padding-right:8px}
+  .hc{display:block;padding:6px 3px;border-radius:5px;font-weight:600;font-size:10px}
+  .heat-wrap{overflow-x:auto}
+  .legend{display:flex;gap:13px;flex-wrap:wrap;font-size:11px;color:var(--muted);margin-top:11px}
+  .legend span{display:flex;align-items:center;gap:5px}.legend i{width:12px;height:12px;border-radius:3px;display:inline-block}
+  /* ===== MOVERS ===== */
+  .mover{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);font-size:13px}
+  .mover:last-child{border:none}
+  .mover .rank{width:22px;height:22px;border-radius:7px;background:#f1f2f6;display:flex;align-items:center;
+    justify-content:center;font-size:11px;font-weight:700;color:var(--muted)}
+  .mover .nm{flex:1;font-weight:500}.mover .vv{font-weight:700}
+  .delta{font-size:11px;font-weight:600;padding:2px 7px;border-radius:12px}
+  .delta.p{background:#dcfce7;color:#15803d}.delta.n{background:#fee2e2;color:#b91c1c}.delta.z{background:#f1f2f6;color:#9ca3af}
+  /* ===== INSIGHTS ===== */
+  .insight{display:flex;gap:12px;padding:14px 16px;border-radius:13px;margin-bottom:11px;border:1px solid var(--line);background:#fafbfc}
+  .insight .ico{font-size:19px;flex-shrink:0}
+  .insight h4{font-size:13.5px;font-weight:600;margin-bottom:2px}
+  .insight p{font-size:12.5px;color:#374151;font-weight:300}
+  .insight.crit{background:#fef2f2;border-color:#fecaca}.insight.win{background:#f0fdf4;border-color:#bbf7d0}
+  .insight.info{background:#eff6ff;border-color:#bfdbfe}.insight.warni{background:#fffbeb;border-color:#fde68a}
+  .insight strong{font-weight:600}
+  /* ===== NARRATIVE ===== */
+  .narr{background:linear-gradient(180deg,#fff,#fbfbfc);border-left:5px solid var(--red);border-radius:0 16px 16px 0;
+    padding:24px 28px;font-size:13.5px;color:#1f2937;font-weight:300;box-shadow:var(--shadow)}
+  .narr p{margin-bottom:11px}.narr strong{color:var(--red-d);font-weight:600}
+  .narr .h{font-weight:700;color:var(--ink);font-size:14.5px;margin-bottom:8px}
+  /* ===== ENHANCEMENT ===== */
+  .enh{display:grid;grid-template-columns:repeat(auto-fit,minmax(225px,1fr));gap:13px}
+  .enh .e{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow)}
+  .enh .e .t{font-weight:600;font-size:13px;display:flex;align-items:center;gap:7px;margin-bottom:5px}
+  .enh .e p{font-size:12px;color:var(--muted);font-weight:300}
+  .badge-p{font-size:9.5px;font-weight:700;padding:2px 7px;border-radius:5px;background:#fee2e2;color:#b91c1c;margin-left:auto}
+  /* ===== STRATEGY PILLARS ===== */
+  .pillars{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  @media(max-width:900px){.pillars{grid-template-columns:1fr 1fr}}
+  .pil{background:linear-gradient(160deg,#1a1f3a,#0d1124);color:#fff;border-radius:14px;padding:16px;position:relative}
+  .pil .n{width:26px;height:26px;border-radius:50%;background:#38bdf8;color:#0d1124;display:flex;align-items:center;
+    justify-content:center;font-weight:700;font-size:13px;margin-bottom:9px}
+  .pil h5{font-size:13px;font-weight:600;margin-bottom:6px;line-height:1.25}
+  .pil ul{list-style:none;font-size:11px;font-weight:300;opacity:.9}
+  .pil li{padding:2px 0 2px 12px;position:relative}.pil li::before{content:'▸';position:absolute;left:0;color:#fbbf24}
+  footer{text-align:center;color:var(--muted);font-size:11.5px;margin-top:36px;font-weight:300;line-height:1.7}
+
+  /* ================= MOBILE OPTIMIZATION ================= */
+  @media(max-width:640px){
+    .wrap{padding:12px 12px 48px}
+    /* Header: tumpuk rapi & rata kiri */
+    header{flex-direction:column;align-items:flex-start;padding:18px 18px;border-radius:16px;gap:14px}
+    .brand{flex-direction:column;align-items:flex-start;gap:10px}
+    .brand h1{font-size:18px;line-height:1.25}
+    .brand .sub{font-size:11.5px}
+    .deadline-badge{width:100%;text-align:left;padding:10px 14px}
+    .deadline-badge .d-val{font-size:18px}
+    /* Section titles & labels */
+    .sec{font-size:11px;margin:24px 2px 11px;flex-wrap:wrap}
+    .sec span.tag{flex-basis:100%;margin-left:0;margin-top:2px}
+    .row-label{margin:2px 2px 8px}
+    /* KPI: 2 kolom di HP agar tidak terlalu panjang ke bawah */
+    .kpis{grid-template-columns:1fr 1fr;gap:10px}
+    .kpi{padding:13px 13px;border-radius:13px}
+    .kpi .lbl{font-size:10px;letter-spacing:.2px}
+    .kpi .val{font-size:21px;margin-top:3px}
+    .kpi .meta{font-size:10.5px}
+    .pill{font-size:10px;padding:2px 7px}
+    /* Semua grid jadi 1 kolom */
+    .grid2,.grid2b,.grid3,.attain{grid-template-columns:1fr}
+    .card{padding:15px 15px;border-radius:14px}
+    .card h3{font-size:14px}
+    .card .hint{font-size:11px;margin-bottom:11px}
+    /* Tinggi chart dikurangi agar pas di layar HP */
+    .cbox{height:240px}.cbox.tall{height:300px}.cbox.sm{height:220px}
+    /* Target attainment: hapus garis pemisah kiri saat ditumpuk */
+    .attain>div{border-left:none!important;padding-left:0!important;padding-top:6px;
+      border-top:1px solid var(--line)}
+    .attain>div:first-child{border-top:none;padding-top:0}
+    .stat-big{font-size:24px}
+    /* Mapping & enhancement & pillars: 1 kolom */
+    .map-grid,.enh{grid-template-columns:1fr}
+    .pillars{grid-template-columns:1fr;gap:10px}
+    /* Heatmap: scroll horizontal & angka lebih kecil */
+    table.heat{font-size:9.5px;min-width:520px}
+    .hc{padding:5px 2px;font-size:9px}
+    .heat-wrap{-webkit-overflow-scrolling:touch}
+    .heat-wrap::after{content:'← geser →';display:block;text-align:center;font-size:10px;color:#bbb;margin-top:4px}
+    /* Movers & narasi */
+    .mover{font-size:12px}
+    .narr{padding:16px 16px;font-size:12.5px}
+    .narr .h{font-size:13.5px}
+    .logo .name{font-size:16px}
+  }
+  @media(max-width:380px){
+    .kpis{grid-template-columns:1fr}
+    .kpi .val{font-size:22px}
+  }
+  /* ====================================================== */
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ============ HEADER ============ -->
+  <header>
+    <div class="brand">
+      <div class="logo">
+        <svg width="30" height="30" viewBox="0 0 100 100">
+          <path d="M50 6 C70 14 86 30 94 50 C70 42 54 26 46 6 Z" fill="#e60000"/>
+          <path d="M50 94 C30 86 14 70 6 50 C30 58 46 74 54 94 Z" fill="#e60000"/>
+          <circle cx="50" cy="50" r="13" fill="#e60000"/>
+        </svg>
+        <span class="name">Telkomsel</span>
+      </div>
+      <div>
+        <h1>CX100 Polling — Executive Dashboard</h1>
+        <div class="sub">Program CX100 Danantara · Monitoring Harian Partisipasi Survei · Periode 19–28 Jun 2026</div>
+      </div>
+    </div>
+    <div class="deadline-badge">
+      <div class="d-lbl">Deadline Pengisian</div>
+      <div class="d-val">18 Juli 2026</div>
+      <div class="d-sub">⏳ <span id="remDays"></span> hari tersisa</div>
+    </div>
+  </header>
+
+  <!-- ============ A. EXECUTIVE SUMMARY ============ -->
+  <div class="sec">A · Executive Summary</div>
+  <div class="row-label">Indikator Utama</div>
+  <div class="kpis">
+    <div class="kpi lacc l1"><div class="lbl">Total Polling Kumulatif</div><div class="val" id="cTotal"></div>
+      <div class="meta">akumulasi 13 tim · 10 hari</div></div>
+    <div class="kpi lacc l2"><div class="lbl">Pencapaian vs Target</div><div class="val" id="cAch"></div>
+      <div class="meta">target 8.300.000</div><span class="pill down">Jauh di bawah target</span></div>
+    <div class="kpi lacc l3"><div class="lbl">Rata-rata Harian</div><div class="val" id="cAvg"></div>
+      <div class="meta">5 hari terakhir: <span id="cAvg5"></span>/hari</div></div>
+    <div class="kpi lacc l4"><div class="lbl">Hari Terbaik</div><div class="val" id="cBest"></div>
+      <div class="meta" id="cBestD"></div><span class="pill up">Puncak partisipasi</span></div>
+    <div class="kpi lacc l5"><div class="lbl">Pace Dibutuhkan</div><div class="val" id="cReq"></div>
+      <div class="meta">per hari utk capai target</div><span class="pill neu" id="cReqX"></span></div>
+  </div>
+
+  <div class="row-label">Indikator Tambahan &amp; Forecast</div>
+  <div class="kpis">
+    <div class="kpi b2"><div class="lbl">Polling Hari Ini</div><div class="val" id="kToday"></div>
+      <div class="meta">28 Jun 2026</div><span class="pill up" id="kTodayG"></span></div>
+    <div class="kpi b4"><div class="lbl">Kategori Dominan</div><div class="val" style="font-size:19px" id="kDom"></div>
+      <div class="meta" id="kDomPct"></div></div>
+    <div class="kpi b5"><div class="lbl">Sisa Hari → 18 Jul</div><div class="val" id="kRem"></div>
+      <div class="meta">hari kerja efektif terbatas</div></div>
+    <div class="kpi b6"><div class="lbl">Forecast s/d Deadline</div><div class="val" id="kFc"></div>
+      <div class="meta" id="kFcPct"></div><span class="pill down">Di bawah target</span></div>
+  </div>
+
+  <!-- TARGET ATTAINMENT -->
+  <div class="card" style="margin-top:16px">
+    <h3>🎯 Target Attainment & Run-Rate</h3>
+    <div class="hint">Posisi proyeksi terhadap target kampanye 8,3 juta dan kecepatan harian yang dibutuhkan.</div>
+    <div class="attain">
+      <div>
+        <div class="stat-sub">Proyeksi akhir vs Target 8.300.000</div>
+        <div class="bar-outer"><div class="bar-inner" id="atBar">proyeksi</div></div>
+        <div class="mini"><span>0</span><span id="atTxt"></span><span>8,3 jt</span></div>
+      </div>
+      <div style="border-left:1px solid var(--line);padding-left:16px">
+        <div class="stat-sub">Pace dibutuhkan / hari</div>
+        <div class="stat-big" id="atReq" style="color:var(--bad)"></div>
+        <div class="stat-sub" id="atGap"></div>
+      </div>
+      <div style="border-left:1px solid var(--line);padding-left:16px">
+        <div class="stat-sub">Pace aktual (5 hari)</div>
+        <div class="stat-big" id="atAct" style="color:var(--green)"></div>
+        <div class="stat-sub">rata-rata 5 hari terakhir</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ B. CATEGORY MAPPING ============ -->
+  <div class="sec">B · Definisi Pengelompokan 4 Kategori (= 4 Pilar Strategi)</div>
+  <div class="map-grid" id="mapGrid"></div>
+  <div class="card" style="margin-top:12px;padding:12px 16px">
+    <div style="font-size:12px;color:var(--muted)">
+      <strong style="color:var(--ink)">Catatan pemetaan:</strong> kategori dibentuk dari link survei masing-masing tim —
+      Employee &amp; Family (CXTLKM, TFlyers), Frontliner &amp; Partner (CXA1–CXA4, CXHQ, network),
+      Digital Embedding (CX100 = Public), Broadcast Notification (Care = TNPS).
+      <span style="color:var(--bad)">3 tim belum masuk ke-4 pilar &amp; masih 0:</span>
+      Procurement Active (proc-a), Procurement Non-PO (proc-b), Brand/Corp Comm (campaign) — dipantau di tampilan 13 tim.
+    </div>
+  </div>
+
+  <!-- ============ C. DAILY TREND ============ -->
+  <div class="sec">C · Daily Trend Monitoring</div>
+  <div class="card">
+    <h3>Tren Kontribusi Harian — 4 Kategori Utama</h3>
+    <div class="hint">Stacked area: komposisi polling harian per kelompok. Tanggal akhir pekan ditandai lebih redup.</div>
+    <div class="cbox" style="height:320px"><canvas id="stackChart"></canvas></div>
+  </div>
+
+  <!-- ============ D. COMPOSITION ============ -->
+  <div class="sec">D · Composition & Contribution</div>
+  <div class="grid2">
+    <div class="card">
+      <h3>Komposisi Partisipasi Area 1–4</h3>
+      <div class="hint">Pangsa kumulatif antar Area (bagian dari pilar Frontliner &amp; Partner Activation).</div>
+      <div class="cbox sm"><canvas id="catDonut"></canvas></div>
+    </div>
+    <div class="card">
+      <h3>Kontribusi Kumulatif per Kategori</h3>
+      <div class="hint">Nilai absolut & persentase tiap kelompok.</div>
+      <div class="cbox sm"><canvas id="catBar"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ============ E. TEAM COMPARISON ============ -->
+  <div class="sec">E · Team Comparison — 13 Tim Original</div>
+  <div class="grid2">
+    <div class="card">
+      <h3>Ranking Tim — Total Kumulatif</h3>
+      <div class="hint">Merah = belum ada partisipasi sama sekali (perlu aktivasi).</div>
+      <div class="cbox tall"><canvas id="teamBar"></canvas></div>
+    </div>
+    <div class="card">
+      <h3>Pergerakan Hari Ini (28 Jun)</h3>
+      <div class="hint">Perubahan polling tim dibanding hari sebelumnya.</div>
+      <div id="movers"></div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:16px">
+    <h3>Heatmap Intensitas Partisipasi (Tim × Tanggal)</h3>
+    <div class="hint">Semakin pekat, semakin tinggi polling. Titik abu-abu = nol / belum aktif.</div>
+    <div class="heat-wrap" id="heatmap"></div>
+    <div class="legend">
+      <span><i style="background:#fff;border:1px solid #ddd"></i>0</span>
+      <span><i style="background:#fde0dc"></i>rendah</span>
+      <span><i style="background:#f08a82"></i>sedang</span>
+      <span><i style="background:#e60000"></i>tinggi</span>
+    </div>
+  </div>
+
+  <!-- Forecast & Growth Rate (dipindah ke bawah heatmap) -->
+  <div class="grid2" style="margin-top:16px">
+    <div class="card">
+      <h3>Tren Total Polling Harian + Forecast s/d 18 Jul</h3>
+      <div class="hint">Garis solid = realisasi kumulatif · garis putus-putus = proyeksi berdasarkan pace 5 hari terakhir.</div>
+      <div class="cbox"><canvas id="fcChart"></canvas></div>
+    </div>
+    <div class="card">
+      <h3>Growth Rate Harian (%)</h3>
+      <div class="hint">Hijau = percepatan, merah = perlambatan partisipasi.</div>
+      <div class="cbox"><canvas id="grChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ============ INSIGHTS ============ -->
+  <div class="sec">Insight Otomatis</div>
+  <div class="grid2b">
+    <div>
+      <div class="insight crit"><div class="ico">🚨</div><div><h4>Gap besar terhadap target 18 Juli</h4>
+        <p>Kumulatif baru <strong>77.621 (0,94%)</strong> dari target 8,3 juta. Dengan pace saat ini, proyeksi akhir hanya <strong>~304 ribu (≈3,7%)</strong>. Mengejar target butuh akselerasi <strong>~36× lipat</strong> menjadi ±411.000/hari.</p></div></div>
+      <div class="insight win"><div class="ico">🏆</div><div><h4>"Digital Embedding" (kanal Public) mendominasi</h4>
+        <p>Menyumbang <strong>79,7%</strong> total polling lewat kanal Public — konsisten & tahan akhir pekan. Inilah mesin utama untuk men-<em>scale</em> volume menuju target.</p></div></div>
+      <div class="insight info"><div class="ico">📈</div><div><h4>Momentum positif namun melambat</h4>
+        <p>Tren naik dari ~1.000 → puncak <strong>13.618 (26 Jun)</strong>, lalu melandai (−17,1% di 27 Jun, +5,6% di 28 Jun). Growth rate menyusut → momentum perlu didorong ulang.</p></div></div>
+    </div>
+    <div>
+      <div class="insight crit"><div class="ico">⛔</div><div><h4>3 tim masih NOL & belum dipetakan</h4>
+        <p><strong>Procurement Active, Procurement Non-PO, Brand/Corp Comm</strong> belum mencatat 1 polling pun dan belum masuk ke-4 pilar aktivasi. Pilar <strong>Broadcast Notification</strong> (TNPS) pun baru 1,1%.</p></div></div>
+      <div class="insight win"><div class="ico">🌱</div><div><h4>Aktivasi baru mulai bergerak</h4>
+        <p>Sinyal positif: <strong>TNPS</strong> melonjak ke 603 (+438) dan <strong>Area 1</strong> ke 228 (+227) di 28 Jun. Mobilisasi internal mulai hidup — perlu dipertahankan.</p></div></div>
+      <div class="insight warni"><div class="ico">⚠️</div><div><h4>Area 3, Area 4 & Care lemah</h4>
+        <p>Area 3 (34) & Area 4 (12) nyaris dorman; kategori Care (CCM) hanya 0,94% dan menurun. Risiko: bila tren melambat, gap ke target makin lebar.</p></div></div>
+    </div>
+  </div>
+
+  <!-- ============ NARRATIVE ============ -->
+  <div class="sec">Narasi untuk Manajemen</div>
+  <div class="narr">
+    <div class="h">Ringkasan Eksekutif — per 28 Juni 2026</div>
+    <p><strong>Progres saat ini.</strong> Dalam 10 hari pertama, terkumpul <strong>77.621 polling</strong> dengan ritme harian yang menguat ke rata-rata <strong>~11.300/hari</strong> (puncak 13.618 pada 26 Jun). Secara eksekusi harian, tim sudah membangun momentum.</p>
+    <p><strong>Yang sudah bagus.</strong> Pilar <strong>Digital Embedding</strong> (kanal Public, 79,7%) menjadi tulang punggung yang konsisten dan tahan akhir pekan, disusul <strong>Employee &amp; Family Enforcement</strong> (15,6%, digerakkan Telkom Group). Mulai terlihat pula tanda aktivasi: TNPS dan Area 1 melonjak di hari terakhir.</p>
+    <p><strong>Yang perlu perhatian.</strong> Terhadap target <strong>8,3 juta</strong>, posisi baru <strong>0,94%</strong> dan proyeksi ke 18 Juli hanya <strong>~3,7%</strong>. Tiga tim masih nol (Procurement Active/Non-PO, Brand/Corp Comm), serta Area 3, Area 4, dan Care sangat lemah. Growth rate juga mulai melandai.</p>
+    <p><strong>Outlook s/d 18 Juli.</strong> Dengan tren saat ini, target <strong>tidak akan tercapai</strong> tanpa intervensi besar — dibutuhkan ±411.000 polling/hari (≈36× pace sekarang). Realistisnya, target perlu dikalibrasi ulang <em>atau</em> dilakukan lonjakan mobilisasi masif.</p>
+    <p><strong>Rekomendasi tindak lanjut.</strong> (1) Scale-up kanal Public sebagai pengungkit volume utama; (2) Aktivasi paksa 3 tim nol dan reaktivasi Area 3/4 &amp; Care; (3) Jaga momentum internal di hari kerja; (4) Tetapkan run-rate target harian per tim dan pasang alert bila growth rate negatif 2 hari berturut-turut.</p>
+  </div>
+
+  <!-- ============ ENHANCEMENT ============ -->
+  <div class="sec">Rekomendasi Penguatan Dashboard</div>
+  <div class="enh">
+    <div class="e"><div class="t">🎯 Target & Run-Rate per Tim <span class="badge-p">PRIORITAS</span></div><p>Tetapkan kuota harian tiap tim; ukur performa relatif target, bukan angka absolut.</p></div>
+    <div class="e"><div class="t">🔔 Alert Otomatis <span class="badge-p">PRIORITAS</span></div><p>Notifikasi merah bila growth rate negatif 2 hari beruntun atau tim nol di hari kerja.</p></div>
+    <div class="e"><div class="t">📉 Penanda Underperform</div><p>Highlight otomatis tim/kategori di bawah ambang kontribusi (mis. &lt;1%).</p></div>
+    <div class="e"><div class="t">🧮 Gap-to-Target Live</div><p>Tampilkan sisa kebutuhan & expected daily run-rate yang ter-update tiap input.</p></div>
+    <div class="e"><div class="t">🏁 Leaderboard Mingguan</div><p>Ranking tim per minggu untuk memicu kompetisi sehat antar segmen.</p></div>
+    <div class="e"><div class="t">📥 Form Input Tervalidasi</div><p>Entry harian terstandar agar cepat, minim error, dan auto-refresh dashboard.</p></div>
+  </div>
+
+  <!-- ============ STRATEGY PILLARS ============ -->
+  <div class="sec">Strategi Aktivasi Pendukung <span class="tag">konteks: 4 pilar percepatan</span></div>
+  <div class="pillars">
+    <div class="pil"><div class="n">1</div><h5>Employee &amp; Family Enforcement</h5>
+      <ul><li>Email harian seluruh Telkom Group</li><li>Aplikasi internal &amp; sesi townhall</li></ul></div>
+    <div class="pil"><div class="n">2</div><h5>Frontliner &amp; Partner Activation</h5>
+      <ul><li>Engagement GraPARI, Call Center, Dealer</li><li>Target voting via kampanye QR</li></ul></div>
+    <div class="pil"><div class="n">3</div><h5>Digital Embedding</h5>
+      <ul><li>Banner, pop-up, push notification</li><li>Terintegrasi di MyTsel &amp; kanal digital</li></ul></div>
+    <div class="pil"><div class="n">4</div><h5>Broadcast Notification</h5>
+      <ul><li>SMS blast</li><li>Kampanye reminder mingguan</li></ul></div>
+  </div>
+
+  <footer>
+    CX100 Polling Executive Dashboard · Tim Internal Telkomsel · Data per 28 Jun 2026 (input manual harian)<br>
+    Catatan: target 8,3 juta &amp; deadline 18 Juli 2026. Verifikasi sumber sebelum dipakai untuk pelaporan resmi.
+  </footer>
+</div>
+
+<script>
+const D = {"teams": ["Public", "Area 1", "Area 2", "Area 3", "Area 4", "CCM (outsource)", "Telkom Group", "Tflyers", "Vendor Network", "TNPS", "Procurement Active", "Procurement Non-PO", "Brand/Corp Comm"], "dates": ["19 Jun", "20 Jun", "21 Jun", "22 Jun", "23 Jun", "24 Jun", "25 Jun", "26 Jun", "27 Jun", "28 Jun"], "dow": ["Fri", "Sat", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], "series": {"Public": [1038, 6530, 2759, 4562, 6060, 5800, 7364, 9247, 8929, 9540], "Area 1": [0, 0, 0, 0, 0, 6, 8, 9, 1, 228], "Area 2": [0, 0, 0, 0, 0, 6, 0, 775, 505, 66], "Area 3": [0, 0, 0, 0, 0, 7, 0, 27, 0, 0], "Area 4": [0, 0, 0, 0, 0, 5, 0, 7, 0, 0], "CCM (outsource)": [0, 0, 0, 0, 0, 116, 347, 183, 45, 41], "Telkom Group": [0, 0, 0, 0, 0, 2404, 3547, 2834, 1258, 1129], "Tflyers": [0, 0, 0, 0, 0, 0, 236, 442, 110, 111], "Vendor Network": [0, 0, 0, 0, 0, 0, 0, 42, 275, 202], "TNPS": [0, 0, 0, 0, 0, 0, 0, 52, 165, 603], "Procurement Active": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Procurement Non-PO": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Brand/Corp Comm": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, "totals": [1038, 6530, 2759, 4562, 6060, 8344, 11502, 13618, 11288, 11920], "growth": [null, 529.1, -57.7, 65.3, 32.8, 37.7, 37.8, 18.4, -17.1, 5.6], "groups": {"Employee & Family Enforcement": ["Telkom Group", "Tflyers"], "Frontliner & Partner Activation": ["Area 1", "Area 2", "Area 3", "Area 4", "CCM (outsource)", "Vendor Network"], "Digital Embedding": ["Public"], "Broadcast Notification": ["TNPS"]}, "unmapped": ["Procurement Active", "Procurement Non-PO", "Brand/Corp Comm"], "cat_series": {"Employee & Family Enforcement": [0, 0, 0, 0, 0, 2404, 3783, 3276, 1368, 1240], "Frontliner & Partner Activation": [0, 0, 0, 0, 0, 140, 355, 1043, 826, 537], "Digital Embedding": [1038, 6530, 2759, 4562, 6060, 5800, 7364, 9247, 8929, 9540], "Broadcast Notification": [0, 0, 0, 0, 0, 0, 0, 52, 165, 603]}, "cat_cum": {"Employee & Family Enforcement": 12071, "Frontliner & Partner Activation": 2901, "Digital Embedding": 61829, "Broadcast Notification": 820}, "team_cum": {"Public": 61829, "Area 1": 252, "Area 2": 1352, "Area 3": 34, "Area 4": 12, "CCM (outsource)": 732, "Telkom Group": 11172, "Tflyers": 899, "Vendor Network": 519, "TNPS": 820, "Procurement Active": 0, "Procurement Non-PO": 0, "Brand/Corp Comm": 0}, "team_today": {"Public": 9540, "Area 1": 228, "Area 2": 66, "Area 3": 0, "Area 4": 0, "CCM (outsource)": 41, "Telkom Group": 1129, "Tflyers": 111, "Vendor Network": 202, "TNPS": 603, "Procurement Active": 0, "Procurement Non-PO": 0, "Brand/Corp Comm": 0}, "team_delta": {"Public": 611, "Area 1": 227, "Area 2": -439, "Area 3": 0, "Area 4": 0, "CCM (outsource)": -4, "Telkom Group": -129, "Tflyers": 1, "Vendor Network": -73, "TNPS": 438, "Procurement Active": 0, "Procurement Non-PO": 0, "Brand/Corp Comm": 0}, "cum_total": 77621, "today_total": 11920, "today_growth": 5.6, "target": 8300000, "deadline": "18 Jul 2026", "remaining": 20, "avg_daily": 7762, "avg5": 11334, "req_pace": 411119, "best_day": {"val": 13618, "date": "26 Jun"}, "cum_actual": [1038, 7568, 10327, 14889, 20949, 29293, 40795, 54413, 65701, 77621], "fc_dates": ["29 Jun", "30 Jun", "01 Jul", "02 Jul", "03 Jul", "04 Jul", "05 Jul", "06 Jul", "07 Jul", "08 Jul", "09 Jul", "10 Jul", "11 Jul", "12 Jul", "13 Jul", "14 Jul", "15 Jul", "16 Jul", "17 Jul", "18 Jul"], "fc_flat": [88955, 100289, 111624, 122958, 134292, 145627, 156961, 168296, 179630, 190964, 202299, 213633, 224968, 236302, 247636, 258971, 270305, 281640, 292974, 304309], "proj_end": 304309, "proj_pct": 3.67};
+const fmt = n => Math.round(n).toLocaleString('id-ID');
+const isWE = i => D.dow[i]==='Sat'||D.dow[i]==='Sun';
+const CATCOL = {'Employee & Family Enforcement':'#e60000','Frontliner & Partner Activation':'#ff7a00','Digital Embedding':'#2563eb','Broadcast Notification':'#10b981'};
+Chart.defaults.font.family="'Poppins',sans-serif";
+Chart.defaults.font.size=11;
+
+// ---- KPI ----
+document.getElementById('remDays').textContent=D.remaining;
+// 5 kartu klasik (otomatis menyesuaikan data & deadline 18 Jul)
+document.getElementById('cTotal').textContent=fmt(D.cum_total);
+document.getElementById('cAch').textContent=(D.cum_total/D.target*100).toFixed(2)+'%';
+document.getElementById('cAvg').textContent=fmt(D.avg_daily);
+document.getElementById('cAvg5').textContent=fmt(D.avg5);
+document.getElementById('cBest').textContent=fmt(D.best_day.val);
+document.getElementById('cBestD').textContent='pada '+D.best_day.date;
+document.getElementById('cReq').textContent=fmt(D.req_pace);
+document.getElementById('cReqX').textContent='≈'+Math.round(D.req_pace/D.avg5)+'× pace saat ini';
+document.getElementById('kToday').textContent=fmt(D.today_total);
+document.getElementById('kTodayG').textContent=(D.today_growth>=0?'▲ +':'▼ ')+D.today_growth+'%';
+document.getElementById('kTodayG').className='pill '+(D.today_growth>=0?'up':'down');
+const catOrder=Object.entries(D.cat_cum).sort((a,b)=>b[1]-a[1]);
+document.getElementById('kDom').textContent=catOrder[0][0];
+document.getElementById('kDomPct').textContent=(catOrder[0][1]/D.cum_total*100).toFixed(1)+'% kontribusi';
+document.getElementById('kRem').textContent=D.remaining;
+document.getElementById('kFc').textContent=fmt(D.proj_end);
+document.getElementById('kFcPct').textContent='≈'+D.proj_pct+'% dari target';
+
+// ---- TARGET ATTAINMENT ----
+const atPct=D.proj_end/D.target*100;
+document.getElementById('atBar').style.width=Math.max(atPct,9)+'%';
+document.getElementById('atBar').textContent=atPct.toFixed(1)+'%';
+document.getElementById('atTxt').textContent='proyeksi '+fmt(D.proj_end);
+document.getElementById('atReq').textContent=fmt(D.req_pace);
+document.getElementById('atGap').textContent='≈'+Math.round(D.req_pace/D.avg5)+'× pace saat ini';
+document.getElementById('atAct').textContent=fmt(D.avg5);
+
+// ---- FORECAST (cumulative actual + projected) ----
+const allLabels=D.dates.concat(D.fc_dates);
+const actualPad=D.cum_actual.concat(Array(D.fc_dates.length).fill(null));
+const fcPad=Array(D.dates.length-1).fill(null).concat([D.cum_actual[D.cum_actual.length-1]]).concat(D.fc_flat);
+new Chart(document.getElementById('fcChart'),{type:'line',
+  data:{labels:allLabels,datasets:[
+    {label:'Realisasi Kumulatif',data:actualPad,borderColor:'#e60000',backgroundColor:'rgba(230,0,0,.08)',
+      fill:true,tension:.3,pointRadius:3,borderWidth:3},
+    {label:'Proyeksi s/d 18 Jul',data:fcPad,borderColor:'#9ca3af',borderDash:[6,5],
+      tension:.3,pointRadius:0,borderWidth:2,fill:false}
+  ]},
+  options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+    plugins:{legend:{position:'bottom',labels:{usePointStyle:true,boxWidth:8}}},
+    scales:{y:{beginAtZero:true,grid:{color:'#f0f0f0'},ticks:{callback:v=>v>=1000?(v/1000)+'k':v}},x:{grid:{display:false},ticks:{maxRotation:60,minRotation:45,font:{size:9}}}}}
+});
+
+// ---- GROWTH RATE ----
+const gr=D.growth.map(v=>v===null?0:v);
+new Chart(document.getElementById('grChart'),{type:'bar',
+  data:{labels:D.dates,datasets:[{data:gr,
+    backgroundColor:gr.map(v=>v>=0?'rgba(16,185,129,.85)':'rgba(239,68,68,.85)'),borderRadius:5}]},
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>(c.parsed.y>=0?'+':'')+c.parsed.y+'%'}}},
+    scales:{y:{grid:{color:'#f0f0f0'},ticks:{callback:v=>v+'%'}},x:{grid:{display:false}}}}
+});
+
+// ---- STACKED AREA (4 cat) ----
+const catKeys=Object.keys(D.cat_series);
+new Chart(document.getElementById('stackChart'),{type:'line',
+  data:{labels:D.dates,datasets:catKeys.map(k=>({label:k,data:D.cat_series[k],
+    backgroundColor:CATCOL[k]+'cc',borderColor:CATCOL[k],fill:true,tension:.3,pointRadius:2,borderWidth:1.5}))},
+  options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+    plugins:{legend:{position:'bottom',labels:{usePointStyle:true,boxWidth:8}}},
+    scales:{y:{stacked:true,beginAtZero:true,grid:{color:'#f0f0f0'}},x:{stacked:true,grid:{display:false}}}}
+});
+
+// ---- AREA 1–4 DONUT ----
+const areaKeys=['Area 1','Area 2','Area 3','Area 4'];
+const areaCol={'Area 1':'#e60000','Area 2':'#ff7a00','Area 3':'#2563eb','Area 4':'#10b981'};
+const areaData=areaKeys.map(k=>D.team_cum[k]);
+const areaSum=areaData.reduce((a,b)=>a+b,0)||1;
+new Chart(document.getElementById('catDonut'),{type:'doughnut',
+  data:{labels:areaKeys,datasets:[{data:areaData,
+    backgroundColor:areaKeys.map(k=>areaCol[k]),borderColor:'#fff',borderWidth:3}]},
+  options:{responsive:true,maintainAspectRatio:false,cutout:'60%',
+    plugins:{legend:{position:'right',labels:{usePointStyle:true,boxWidth:8,font:{size:10.5}}},
+      tooltip:{callbacks:{label:c=>' '+c.label+': '+c.parsed.toLocaleString('id-ID')+' ('+(c.parsed/areaSum*100).toFixed(1)+'% dari Area 1–4)'}}}}
+});
+
+// ---- CATEGORY BAR ----
+new Chart(document.getElementById('catBar'),{type:'bar',
+  data:{labels:catOrder.map(x=>x[0]),datasets:[{data:catOrder.map(x=>x[1]),
+    backgroundColor:catOrder.map(x=>CATCOL[x[0]]),borderRadius:6}]},
+  options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+c.parsed.x.toLocaleString('id-ID')+' ('+(c.parsed.x/D.cum_total*100).toFixed(2)+'%)'}}},
+    scales:{x:{beginAtZero:true,grid:{color:'#f0f0f0'},ticks:{callback:v=>v>=1000?(v/1000)+'k':v}},y:{grid:{display:false}}}}
+});
+
+// ---- MAPPING CARDS ----
+let mh='';
+catOrder.forEach(([g,v])=>{
+  mh+=`<div class="mapc" style="background:linear-gradient(150deg,${CATCOL[g]},${CATCOL[g]}cc)">
+    <h4>${g}</h4><div class="share">${(v/D.cum_total*100).toFixed(1)}%</div>
+    <div style="font-size:12px;opacity:.9">${v.toLocaleString('id-ID')} polling</div>
+    <ul>${D.groups[g].map(m=>`<li>${m}</li>`).join('')}</ul></div>`;
+});
+document.getElementById('mapGrid').innerHTML=mh;
+
+// ---- TEAM BAR ----
+const tOrder=Object.entries(D.team_cum).sort((a,b)=>b[1]-a[1]);
+new Chart(document.getElementById('teamBar'),{type:'bar',
+  data:{labels:tOrder.map(x=>x[0]),datasets:[{data:tOrder.map(x=>x[1]),
+    backgroundColor:tOrder.map(x=>x[1]===0?'#ef4444':'#e60000'),borderRadius:5}]},
+  options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.x===0?' Belum ada partisipasi':' '+c.parsed.x.toLocaleString('id-ID')+' polling'}}},
+    scales:{x:{beginAtZero:true,grid:{color:'#f0f0f0'},ticks:{callback:v=>v>=1000?(v/1000)+'k':v}},y:{grid:{display:false},ticks:{font:{size:10.5}}}}}
+});
+
+// ---- MOVERS (today's delta) ----
+const mvOrder=Object.entries(D.team_delta).sort((a,b)=>b[1]-a[1]);
+let mv='';let rk=1;
+mvOrder.forEach(([t,dl])=>{
+  const cls=dl>0?'p':(dl<0?'n':'z');
+  const sign=dl>0?'+':'';
+  mv+=`<div class="mover"><div class="rank">${rk++}</div><div class="nm">${t}</div>
+    <div class="vv">${D.team_today[t].toLocaleString('id-ID')}</div>
+    <div class="delta ${cls}">${dl===0?'0':sign+dl}</div></div>`;
+});
+document.getElementById('movers').innerHTML=mv;
+
+// ---- HEATMAP ----
+let maxv=0;D.teams.forEach(t=>D.series[t].forEach(v=>{if(v>maxv)maxv=v;}));
+function hcol(v){if(v===0)return'#fff';const r=v/maxv;const c1=[253,224,220],c2=[230,0,0];
+  const m=c1.map((a,k)=>Math.round(a+(c2[k]-a)*Math.pow(r,.55)));return`rgb(${m[0]},${m[1]},${m[2]})`;}
+let hh='<table class="heat"><thead><tr><th class="tname" style="text-align:left">Tim \\ Tgl</th>';
+D.dates.forEach((dt,i)=>{hh+=`<th>${dt}${isWE(i)?'<br><span style="font-size:8px;color:#bbb">w/e</span>':''}</th>`;});
+hh+='</tr></thead><tbody>';
+tOrder.forEach(([t])=>{hh+=`<tr><td class="tname">${t}</td>`;
+  D.series[t].forEach(v=>{const bg=hcol(v);const tc=v===0?'#ccc':(v/maxv>0.45?'#fff':'#7a1010');
+    hh+=`<td><span class="hc" style="background:${bg};color:${tc}">${v===0?'·':v.toLocaleString('id-ID')}</span></td>`;});
+  hh+='</tr>';});
+hh+='</tbody></table>';
+document.getElementById('heatmap').innerHTML=hh;
+</script>
+</body>
+</html>
